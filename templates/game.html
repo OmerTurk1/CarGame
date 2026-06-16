@@ -8,14 +8,13 @@
 </head>
 <body>
     <div id="game-container">
+        <button id="pause-btn">Durdur</button>
         <div id="ui-layer">
             <div id="score-display">Skor: <span id="score">0</span></div>
             
             <div id="game-over-screen" class="hidden">
                 <h2>Oyun Bitti!</h2>
                 <p>Skorunuz: <span id="final-score">0</span></p>
-                <input type="text" id="player-name" placeholder="Adınızı girin">
-                <button id="save-btn">Skoru Kaydet</button>
                 <button id="restart-btn">Yeniden Başla</button>
                 
                 <div id="leaderboard">
@@ -24,7 +23,6 @@
                 </div>
             </div>
         </div>
-        
         <canvas id="gameCanvas" width="400" height="700"></canvas>
         
     </div>

@@ -35,20 +35,23 @@ def get_scores():
 
 @app.route('/api/save_score', methods=['POST'])
 def save_score():
-    data = request.get_json()
-    player_name = data.get('name', 'Anonim').strip()
-    score = int(data.get('score', 0))
+    try:
+        data = request.get_json()
+        player_name = data.get('name').strip()
+        score = int(data.get('score'))
 
-    with open(DATA_FILE, 'r') as f:
-        scores = json.load(f)
-    
-    if player_name not in scores or scores[player_name] < score:
-        scores[player_name] = score
-    
-    with open(DATA_FILE, 'w') as f:
-        json.dump(scores, f, indent=4)
+        with open(DATA_FILE, 'r') as f:
+            scores = json.load(f)
         
-    return jsonify({'status': 'success'})
+        if player_name not in scores or scores[player_name] < score:
+            scores[player_name] = score
+        
+        with open(DATA_FILE, 'w') as f:
+            json.dump(scores, f, indent=4)
+            
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        return jsonify({"status":f"error: {e}"})
 
 if __name__ == '__main__':
     # Hosting on 0.0.0.0 makes it easier to access from any environment

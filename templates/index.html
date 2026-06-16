@@ -28,10 +28,14 @@
 </head>
 <body>
 
+    <input type="text" id="user-name" placeholder="Enter Your Name" style="margin-right:8px; padding:8px; border-radius:4px; border:none;">
     <button id="start-btn">Oyuna Başla</button>
 
     <script>
         function startGame() {
+            const name = document.getElementById('user-name').value || '';
+            if (name) localStorage.setItem('playerName', name);
+
             fetch('/start_game', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

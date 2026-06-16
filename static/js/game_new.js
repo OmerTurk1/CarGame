@@ -4,9 +4,13 @@ const scoreElement = document.getElementById('score');
 const gameOverScreen = document.getElementById('game-over-screen');
 const finalScoreElement = document.getElementById('final-score');
 const restartBtn = document.getElementById('restart-btn');
-const saveBtn = document.getElementById('save-btn');
-const playerNameInput = document.getElementById('player-name');
+const pauseBtn = document.getElementById('pause-btn');
 const leaderboardList = document.getElementById('leaderboard-list');
+
+// Prefill player name from previous input if available
+const savedName = localStorage.getItem('playerName');
+
+let isPaused = false;
 
 // Game constants
 const LANES = 6;
@@ -26,6 +30,73 @@ let obstacles = [];
 let lastTime = 0;
 let roadOffset = 0;
 let spawnTimer = 0;
+const TRUCK_SPAWN_CHANCE = 0.2;
+
+class Obstacle {
+    constructor(x, y, width, height, color) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.color = color;
+    }
+
+    update(speed, dt) {
+        this.y += 1.5 * speed * dt;
+    }
+
+    draw() {
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+
+        ctx.fillStyle = '#FFFFAA';
+        ctx.fillRect(this.x + 2, this.y + this.height - 6, 8, 6);
+        ctx.fillRect(this.x + this.width - 10, this.y + this.height - 6, 8, 6);
+
+        ctx.fillStyle = '#CC0000';
+        ctx.fillRect(this.x + 2, this.y, 8, 4);
+        ctx.fillRect(this.x + this.width - 10, this.y, 8, 4);
+    }
+
+    collidesWith(player) {
+        return player.x < this.x + this.width &&
+               player.x + CAR_WIDTH > this.x &&
+               player.y < this.y + this.height &&
+               player.y + CAR_HEIGHT > this.y;
+    }
+
+    isOffScreen(canvasHeight) {
+        return this.y > canvasHeight;
+    }
+}
+
+class TruckObstacle extends Obstacle {
+    constructor(x, y, width, height, color) {
+        super(x, y, width, height, color);
+        this.cabHeight = height * 0.70; // Tırın ön kupası daha küçük olur (örn: %30)
+        this.trailerHeight = height - this.cabHeight;
+    }
+
+    draw() {
+        // 1. ÖN KABİN
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x, this.y, this.width, this.cabHeight);
+
+        // 2. ARKA DORSE
+        ctx.fillStyle = this.color; 
+        ctx.fillRect(this.x, this.y + this.cabHeight + 4, this.width, this.trailerHeight - 4);
+
+        // front lights
+        ctx.fillStyle = '#FFFFAA';
+        ctx.fillRect(this.x + 2, this.y + this.height - 6, 8, 6);
+        ctx.fillRect(this.x + this.width - 10, this.y + this.height - 6, 8, 6);
+
+        // back lights
+        ctx.fillStyle = '#CC0000';
+        ctx.fillRect(this.x + 2, this.y, 8, 4);
+        ctx.fillRect(this.x + this.width - 10, this.y, 8, 4);
+    }
+}
 
 // Player object (delay and tilt variables added)
 const player = {
@@ -141,22 +212,38 @@ window.addEventListener('touchend', () => {
 
 
 function spawnObstacle() {
+    // select random lane
     const randomLane = Math.floor(Math.random() * LANES);
     const laneX = (randomLane * LANE_WIDTH) + (LANE_WIDTH / 2) - (CAR_WIDTH / 2);
-    const randomColor = OBSTACLE_COLORS[Math.floor(Math.random() * OBSTACLE_COLORS.length)];
     
-    obstacles.push({
-        x: laneX,
-        y: -CAR_HEIGHT,
-        width: CAR_WIDTH,
-        height: CAR_HEIGHT,
-        color: randomColor
+    // decide if the vehicle is automobile or truck
+    const isTruck = Math.random() < TRUCK_SPAWN_CHANCE;
+    const obstacleHeight = isTruck ? CAR_HEIGHT * 2 : CAR_HEIGHT;
+    const spawnY = -obstacleHeight;
+
+    // --- Secure follow distance control ---
+    const MIN_DISTANCE = CAR_HEIGHT; 
+
+    const isLaneOccupied = obstacles.some(obs => {
+        return obs.x === laneX && obs.y < MIN_DISTANCE;
     });
+
+    if (isLaneOccupied) {
+        return;
+    }
+
+    const randomColor = OBSTACLE_COLORS[Math.floor(Math.random() * OBSTACLE_COLORS.length)];
+
+    const obstacle = isTruck
+        ? new TruckObstacle(laneX, spawnY, CAR_WIDTH, obstacleHeight, randomColor)
+        : new Obstacle(laneX, spawnY, CAR_WIDTH, obstacleHeight, randomColor);
+
+    obstacles.push(obstacle);
 }
 
 // Main game loop
 function update(time) {
-    if (isGameOver) return;
+    if (isGameOver || isPaused) return;
 
     if (!lastTime) lastTime = time;
     const deltaTime = time - lastTime;
@@ -185,35 +272,14 @@ function update(time) {
     // Update and draw obstacles
     for (let i = obstacles.length - 1; i >= 0; i--) {
         const obs = obstacles[i];
-        obs.y += 1.5 * speed * dt; 
+        obs.update(speed, dt);
+        obs.draw();
 
-        // 1. Bot main body drawing
-        ctx.fillStyle = obs.color; 
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-
-        // 2. BOT FRONT HEADLIGHTS (As they move down, the headlights should be at the bottom)
-        ctx.fillStyle = '#FFFFAA';
-        // Left front light
-        ctx.fillRect(obs.x + 2, obs.y + obs.height - 6, 8, 6);
-        // Right front light
-        ctx.fillRect(obs.x + obs.width - 10, obs.y + obs.height - 6, 8, 6);
-
-        // 3. BOT REAR TAILLIGHTS (The taillights should be at the top)
-        ctx.fillStyle = '#CC0000';
-        // Left rear light
-        ctx.fillRect(obs.x + 2, obs.y, 8, 4);
-        // Right rear light
-        ctx.fillRect(obs.x + obs.width - 10, obs.y, 8, 4);
-
-        // GEOMETRIC COLLISION TEST (AABB)
-        if (player.x < obs.x + obs.width &&
-            player.x + CAR_WIDTH > obs.x &&
-            player.y < obs.y + obs.height &&
-            player.y + CAR_HEIGHT > obs.y) {
+        if (obs.collidesWith(player)) {
             endGame();
         }
 
-        if (obs.y > canvas.height) {
+        if (obs.isOffScreen(canvas.height)) {
             obstacles.splice(i, 1);
             score += 10;
             scoreElement.innerText = score;
@@ -235,13 +301,33 @@ function update(time) {
     gameLoop = requestAnimationFrame(update);
 }
 
-function endGame() {
+function togglePause() {
+    if (isGameOver) return;
+
+    isPaused = !isPaused;
+    pauseBtn.innerText = isPaused ? 'Devam Et' : 'Durdur';
+
+    if (!isPaused) {
+        lastTime = 0; 
+        gameLoop = requestAnimationFrame(update);
+    } else {
+        cancelAnimationFrame(gameLoop);
+    }
+}
+
+async function endGame() {
+    console.log("Game finished.");
     isGameOver = true;
     cancelAnimationFrame(gameLoop);
+    const response = await fetch('/api/save_score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 'name': savedName, 'score': score })
+    });
+    console.log(response.status)
+    pauseBtn.style.display = 'none';
     finalScoreElement.innerText = score;
     gameOverScreen.classList.remove('hidden');
-    saveBtn.disabled = false;
-    saveBtn.innerText = "Skoru Kaydet";
     fetchLeaderboard();
 }
 
@@ -252,6 +338,9 @@ function resetGame() {
     lastTime = 0;
     roadOffset = 0;
     spawnTimer = 0;
+    isPaused = false;
+    pauseBtn.style.display = 'block';
+    pauseBtn.innerText = 'Durdur';
     scoreElement.innerText = score;
     
     // New behavior: set the car's initial target to the exact center of the canvas
@@ -264,22 +353,6 @@ function resetGame() {
     gameOverScreen.classList.add('hidden');
     requestAnimationFrame(update); 
 }
-
-
-restartBtn.addEventListener('click', resetGame);
-
-saveBtn.addEventListener('click', () => {
-    const name = playerNameInput.value || 'Anonim';
-    fetch('/api/save_score', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name, score: score })
-    }).then(() => {
-        saveBtn.disabled = true;
-        saveBtn.innerText = "Kaydedildi!";
-        fetchLeaderboard();
-    });
-});
 
 function fetchLeaderboard() {
     fetch('/api/get_scores')
@@ -294,4 +367,6 @@ function fetchLeaderboard() {
         });
 }
 
+restartBtn.addEventListener('click', resetGame);
+pauseBtn.addEventListener('click', togglePause);
 requestAnimationFrame(update);
