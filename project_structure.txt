@@ -1,0 +1,12 @@
+endless_runner_project/
+├── app.py
+├── data/
+│   └── scores.json
+├── static/
+│   ├── css/
+│   │   └── style.css
+│   ├── js/
+│   │   └── game_new.js
+└── templates/             
+    ├── index.html
+    └── game.html

@@ -1,0 +1,19 @@
+body { margin: 0; padding: 0; background-color: #222; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
+#game-container { position: relative; width: 400px; height: 700px; background: #333; border: 2px solid #555; border-radius: 10px; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+canvas { display: block; background: #444; }
+#laneSlider { width: 80%; cursor: pointer; }
+
+#ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+#score-display { position: absolute; top: 10px; left: 10px; color: white; font-size: 20px; font-weight: bold; text-shadow: 1px 1px 2px black; }
+
+#game-over-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.9); color: white; padding: 20px; border-radius: 10px; text-align: center; pointer-events: auto; width: 80%; box-sizing: border-box; }
+.hidden { display: none; }
+input[type="text"], button { margin: 5px 0; padding: 10px; width: 100%; box-sizing: border-box; border-radius: 5px; border: none;}
+button { background: #4CAF50; color: white; cursor: pointer; font-weight: bold; margin-top: 10px; }
+button:hover { background: #45a049; }
+button:disabled { background: #777; cursor: not-allowed; }
+
+#leaderboard { margin-top: 15px; text-align: left; }
+#leaderboard h3 { margin-bottom: 5px; font-size: 16px; border-bottom: 1px solid #666; padding-bottom: 5px;}
+#leaderboard-list { list-style-type: none; padding: 0; margin: 0; font-size: 14px;}
+#leaderboard-list li { padding: 4px 0; display: flex; justify-content: space-between;}

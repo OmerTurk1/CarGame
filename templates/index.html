@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonsuz Yarış - Giriş</title>
+    <style>
+        #start-btn {
+            background: #4CAF50; 
+            color: white;
+            padding: 15px 32px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #start-btn:hover { background: #45a049; }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #222;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="start-btn">Oyuna Başla</button>
+
+    <script>
+        function startGame() {
+            fetch('/start_game', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Redirect the browser using the URL returned from the backend
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                }
+            })
+            .catch(err => console.error("Hata:", err));
+        }
+
+        const startBtn = document.getElementById('start-btn');
+        startBtn.addEventListener('click', startGame);
+    </script>
+</body>
+</html>
