@@ -19,6 +19,90 @@ const CAR_WIDTH = LANE_WIDTH -30;
 const CAR_HEIGHT = CAR_WIDTH * 1.75;
 const OBSTACLE_COLORS = ['#FFD700', '#3498db', '#e74c3c', '#2ecc71', '#e67e22'];
 
+const carImage = new Image();
+const truckImage = new Image();
+let imagesLoaded = false;
+
+function preloadImages() {
+    const assets = [
+        { img: carImage, src: '/static/assets/car.png' },
+        { img: truckImage, src: '/static/assets/truck.png' }
+    ];
+
+    return Promise.all(assets.map(asset => {
+        return new Promise((resolve) => {
+            asset.img.onload = resolve;
+            asset.img.onerror = resolve;
+            asset.img.src = asset.src;
+        });
+    })).then(() => {
+        imagesLoaded = true;
+    });
+}
+
+function drawVehicleWithTint(img, x, y, width, height, color, alpha = 0.45) {
+    if (imagesLoaded && img.complete && img.naturalWidth) {
+        // 1. Önce orijinal araba görselini direkt çiziyoruz (Böylece camlar, aynalar orijinal kalıyor)
+        ctx.drawImage(img, x, y, width, height);
+        
+        // 2. Sadece gri bölgeleri boyayabilmek için geçici (off-screen) bir canvas oluşturuyoruz
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = width;
+        tempCanvas.height = height;
+        const tempCtx = tempCanvas.getContext('2d');
+        
+        // Orijinal görseli bu geçici canvas'a da çiziyoruz
+        tempCtx.drawImage(img, 0, 0, width, height);
+        
+        // 3. Geçici canvas'ın piksel verilerini (RGBA) alıyoruz
+        const imgData = tempCtx.getImageData(0, 0, width, height);
+        const data = imgData.data;
+        
+        // 4. Tüm pikselleri tek tek dönerek "gri" olanları tespit ediyoruz
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const a = data[i + 3];
+            
+            // Eğer piksel transparan değilse
+            if (a > 0) {
+                // Gri tonlarında R, G ve B değerleri birbirine çok yakındır.
+                // Ayrıca camların canlı mavisini (R: ~50, G: ~170, B: ~220) elemek için 
+                // R ve B arasındaki farkın küçük olmasını kontrol ediyoruz.
+                const isGray = Math.abs(r - g) < 15 && Math.abs(g - b) < 15 && Math.abs(r - b) < 15;
+                
+                // Camların belirgin mavisini veya farları tamamen korumak için ek güvenlik sınırı (isteğe bağlı)
+                const isBlueWindow = (b > r + 40 && b > g + 10); 
+                
+                if (isGray && !isBlueWindow) {
+                    // Bu piksel arabanın gri kaportasına ait!
+                    // Burayı transparan bırakıyoruz ki alttaki renklendirme katmanı buraya işlesin
+                    data[i + 3] = 0; 
+                }
+            }
+        }
+        // Güncellenmiş pikselleri geçici canvas'a geri yüklüyoruz
+        tempCtx.putImageData(imgData, 0, 0);
+        
+        // 5. Şimdi ana canvas üzerinde renklendirme büyüsünü yapıyoruz
+        ctx.save();
+        // Sadece orijinal arabanın olduğu alana boyama yap (source-atop)
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = color;
+        // Arabanın üzerini komple hedef renkle kaplıyoruz
+        ctx.fillRect(x, y, width, height);
+        ctx.restore();
+        
+        // 6. En son adım: Gri piksellerini sildiğimiz (yani camları, aynaları ve detayları tuttuğumuz maskeyi en üste tekrar çizdiriyoruz.
+        ctx.drawImage(tempCanvas, x, y);
+        
+    } else {
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, width, height);
+    }
+}
 // Game variables
 let gameLoop;
 let isGameOver = false;
@@ -46,16 +130,7 @@ class Obstacle {
     }
 
     draw() {
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-
-        ctx.fillStyle = '#FFFFAA';
-        ctx.fillRect(this.x + 2, this.y + this.height - 6, 8, 6);
-        ctx.fillRect(this.x + this.width - 10, this.y + this.height - 6, 8, 6);
-
-        ctx.fillStyle = '#CC0000';
-        ctx.fillRect(this.x + 2, this.y, 8, 4);
-        ctx.fillRect(this.x + this.width - 10, this.y, 8, 4);
+        drawVehicleWithTint(carImage, this.x, this.y, this.width, this.height, this.color);
     }
 
     collidesWith(player) {
@@ -78,23 +153,7 @@ class TruckObstacle extends Obstacle {
     }
 
     draw() {
-        // 1. ÖN KABİN
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.x, this.y, this.width, this.cabHeight);
-
-        // 2. ARKA DORSE
-        ctx.fillStyle = this.color; 
-        ctx.fillRect(this.x, this.y + this.cabHeight + 4, this.width, this.trailerHeight - 4);
-
-        // front lights
-        ctx.fillStyle = '#FFFFAA';
-        ctx.fillRect(this.x + 2, this.y + this.height - 6, 8, 6);
-        ctx.fillRect(this.x + this.width - 10, this.y + this.height - 6, 8, 6);
-
-        // back lights
-        ctx.fillStyle = '#CC0000';
-        ctx.fillRect(this.x + 2, this.y, 8, 4);
-        ctx.fillRect(this.x + this.width - 10, this.y, 8, 4);
+        drawVehicleWithTint(truckImage, this.x, this.y, this.width, this.height, this.color);
     }
 }
 
@@ -126,29 +185,30 @@ const player = {
     draw: function() {
         ctx.save();
         
-        const centerX = this.x + CAR_WIDTH / 2;
-        const centerY = this.y + CAR_HEIGHT;
+        // 1. Pivot Noktası: Aracın gerçek çarpışma kutusunun EN ARKA ORTA noktası
+        // Çarpışma kutusu y ile y + CAR_HEIGHT arasındadır. Arka çizgi y + CAR_HEIGHT'tır.
+        const pivotX = this.x + CAR_WIDTH / 2;
+        const pivotY = this.y + CAR_HEIGHT; 
         
-        ctx.translate(centerX, centerY);
-        ctx.rotate(this.angle);
+        // 2. Canvas orijinini bu arka orta noktaya taşıyoruz
+        ctx.translate(pivotX, pivotY);
         
-        // 1. Main body (gray)
-        ctx.fillStyle = '#808080';
-        ctx.fillRect(-CAR_WIDTH / 2, -CAR_HEIGHT, CAR_WIDTH, CAR_HEIGHT);
-        
-        // 2. FRONT HEADLIGHTS (light yellow/white - top corners)
-        ctx.fillStyle = '#FFFFAA';
-        // Left front light (width: 8px, height: 6px)
-        ctx.fillRect(-CAR_WIDTH / 2 + 2, -CAR_HEIGHT, 8, 6);
-        // Right front light
-        ctx.fillRect(CAR_WIDTH / 2 - 10, -CAR_HEIGHT, 8, 6);
+        // 3. Görsel ters olduğu için Math.PI (180 derece) ekleyerek yönü yukarı çeviriyoruz.
+        // Bu dönüşten sonra local +Y ekseni artık ekranın YUKARISINI gösterir.
+        ctx.rotate(this.angle + Math.PI);
 
-        // 3. REAR TAILLIGHTS (dark red - bottom corners)
-        ctx.fillStyle = '#FF0000';
-        // Left rear light (width: 8px, height: 4px)
-        ctx.fillRect(-CAR_WIDTH / 2 + 2, -4, 8, 4);
-        // Right rear light
-        ctx.fillRect(CAR_WIDTH / 2 - 10, -4, 8, 4);
+        // 4. Görseli çiziyoruz:
+        // Orijinimiz artık arabanın arkası ve local +Y yukarıyı gösteriyor.
+        // Y değerini 0 verdiğimizde, araba tam arkasından (0'dan) ileriye (yukarıya) doğru çizilir.
+        drawVehicleWithTint(
+            carImage, 
+            -CAR_WIDTH / 2, 
+            0, // <-- Burası 0 olmalı!
+            CAR_WIDTH, 
+            CAR_HEIGHT, 
+            '#808080', 
+            0.35
+        );
         
         ctx.restore();
     }
@@ -369,4 +429,6 @@ function fetchLeaderboard() {
 
 restartBtn.addEventListener('click', resetGame);
 pauseBtn.addEventListener('click', togglePause);
-requestAnimationFrame(update);
+preloadImages().then(() => {
+    requestAnimationFrame(update);
+});

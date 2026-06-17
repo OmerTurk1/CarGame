@@ -5,31 +5,143 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sonsuz Yarış - Giriş</title>
     <style>
-        #start-btn {
-            background: #4CAF50; 
-            color: white;
-            padding: 15px 32px;
-            font-size: 16px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
+        * {
+            box-sizing: border-box;
         }
-        #start-btn:hover { background: #45a049; }
-        
+
         body {
+            margin: 0;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            background: #222;
-            margin: 0;
+            background: radial-gradient(circle at top, #444 0%, #111 55%);
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
         }
+
+        .page-shell {
+            position: relative;
+            z-index: 10;
+            width: min(420px, calc(100vw - 32px));
+            padding: 40px 30px;
+            background: rgba(18, 18, 18, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 24px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+            text-align: center;
+        }
+
+        .page-shell h1 {
+            margin: 0 0 18px;
+            font-size: clamp(2rem, 2.5vw, 3rem);
+            letter-spacing: 0.08em;
+        }
+
+        .page-shell p {
+            margin: 0 0 28px;
+            color: #d0d0d0;
+            line-height: 1.5;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+
+        #user-name {
+            width: 100%;
+            padding: 16px 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        #user-name::placeholder {
+            color: #bbb;
+        }
+
+        #start-btn {
+            width: 100%;
+            padding: 16px 20px;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 30px rgba(46, 204, 113, 0.22);
+        }
+
+        /* --- DEKORATİF ARAÇLAR --- */
+        .decor-car {
+            position: absolute;
+            width: 90px;
+            height: 50px;
+            background-image: url('{{ url_for('static', filename='assets/car.png') }}');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.65;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Boyut Varyasyonları */
+        .decor-car.small { width: 60px; height: 35px; opacity: 0.45; }
+        .decor-car.big { width: 120px; height: 70px; opacity: 0.75; }
+
+        /* Renk Varyasyonları (Hue-Rotate ile Renk Değişimi) */
+        .decor-car.red    { filter: drop-shadow(0 8px 12px rgba(0,0,0,0.3)) hue-rotate(0deg); }
+        .decor-car.blue   { filter: drop-shadow(0 8px 12px rgba(0,0,0,0.3)) hue-rotate(140deg); }
+        .decor-car.purple { filter: drop-shadow(0 8px 12px rgba(0,0,0,0.3)) hue-rotate(220deg); }
+        .decor-car.yellow { filter: drop-shadow(0 8px 12px rgba(0,0,0,0.3)) hue-rotate(50deg); }
+        .decor-car.orange { filter: drop-shadow(0 8px 12px rgba(0,0,0,0.3)) hue-rotate(25deg); }
+        .decor-car.cyan   { filter: drop-shadow(0 8px 12px rgba(0,0,0,0.3)) hue-rotate(100deg); }
+
+        /* Konumlandırmalar ve Dönüş Açıları */
+        .decor-car.c1 { top: 8%;  left: 5%;   transform: rotate(-15deg); }
+        .decor-car.c2 { top: 22%; right: 7%;  transform: rotate(12deg); }
+        .decor-car.c3 { top: 50%; left: 8%;   transform: rotate(-45deg); }
+        .decor-car.c4 { top: 45%; right: 4%;  transform: rotate(35deg); }
+        .decor-car.c5 { bottom: 22%; left: 14%; transform: rotate(25deg); }
+        .decor-car.c6 { bottom: 8%;  right: 12%; transform: rotate(-20deg); }
+        .decor-car.c7 { top: 78%;  left: 4%;   transform: rotate(60deg); }
+        .decor-car.c8 { top: 5%;   right: 25%; transform: rotate(-5deg); }
     </style>
 </head>
 <body>
+    <div class="page-shell">
+        <h1>Sonsuz Yarış</h1>
+        <p>İsmini yaz, yolun kralı ol ve en yüksek skoru kırmaya başla.</p>
 
-    <input type="text" id="user-name" placeholder="Enter Your Name" style="margin-right:8px; padding:8px; border-radius:4px; border:none;">
-    <button id="start-btn">Oyuna Başla</button>
+        <div class="input-group">
+            <input type="text" id="user-name" placeholder="İsminizi girin">
+        </div>
+
+        <button id="start-btn">Oyuna Başla</button>
+    </div>
+
+    <div class="decor-car c1 big red"></div>
+    <div class="decor-car c2 small blue"></div>
+    <div class="decor-car c3 purple"></div>
+    <div class="decor-car c4 big yellow"></div>
+    <div class="decor-car c5 orange"></div>
+    <div class="decor-car c6 small cyan"></div>
+    <div class="decor-car c7 small red"></div>
+    <div class="decor-car c8 blue"></div>
 
     <script>
         function startGame() {
@@ -43,16 +155,14 @@
             })
             .then(response => response.json())
             .then(data => {
-                // Redirect the browser using the URL returned from the backend
                 if (data.redirect) {
                     window.location.href = data.redirect;
                 }
             })
-            .catch(err => console.error("Hata:", err));
+            .catch(err => console.error('Hata:', err));
         }
 
-        const startBtn = document.getElementById('start-btn');
-        startBtn.addEventListener('click', startGame);
+        document.getElementById('start-btn').addEventListener('click', startGame);
     </script>
 </body>
 </html>
